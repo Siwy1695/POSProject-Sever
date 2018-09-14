@@ -51,11 +51,11 @@ int process_client(client_type &new_client, std::vector<client_type> &client_arr
 				if (strcmp("", tempmsg))
 					msg = "Client #" + std::to_string(new_client.id) + ": " + tempmsg;
 
-				std::cout << msg.c_str() << std::endl;
+				std::cout << "Received: " << msg.c_str() << std::endl;
 
 				std::transform(msg.begin(), msg.end(), msg.begin(), ::toupper);
 
-				std::cout << msg.c_str() << std::endl;
+				std::cout << "Send: " <<msg.c_str() << std::endl;
 				//Send Response
 				response = send(client_array[new_client.id].socket, msg.c_str(), strlen(msg.c_str()), 0);
 
