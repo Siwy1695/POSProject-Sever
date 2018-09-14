@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -12,6 +13,7 @@
 #define DEFAULT_PORT "3504"
 #define DEFAULT_BUFLEN 512
 
+
 struct client_type
 {
 	int id;
@@ -21,12 +23,21 @@ struct client_type
 const char OPTION_VALUE = 1;
 const int MAX_CLIENTS = 25;
 
+/*!
+Client processing funciton - session main loop
+
+Nedded:
+Structutre client_type
+std::Thread
+*/
 int process_client(client_type &new_client, std::vector<client_type> &client_array, std::thread &thread)
 {
 	std::string msg = "";
 	char tempmsg[DEFAULT_BUFLEN] = "";
 
-	//Session
+	/*!
+	Session
+	*/
 	while (true)
 	{
 		memset(tempmsg, 0, DEFAULT_BUFLEN);
@@ -56,7 +67,9 @@ int process_client(client_type &new_client, std::vector<client_type> &client_arr
 				std::transform(msg.begin(), msg.end(), msg.begin(), ::toupper);
 
 				std::cout << "Send: " <<msg.c_str() << std::endl;
-				//Send Response
+				/*!
+				Send Response
+				*/
 				response = send(client_array[new_client.id].socket, msg.c_str(), strlen(msg.c_str()), 0);
 
 
@@ -82,6 +95,11 @@ int process_client(client_type &new_client, std::vector<client_type> &client_arr
 	return 0;
 }
 
+/*!
+Main Function 
+
+Here starts server and client processing
+*/
 int main()
 {
 	WSADATA wsaData;
@@ -95,38 +113,54 @@ int main()
 	std::thread my_thread[MAX_CLIENTS];
 
 
-	//Initialize Winsock
+	/*!
+	Initialize Winsock
+	*/
 	std::cout << "Intializing Winsock..." << std::endl;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	//Setup hints
+	/*!
+	Setup hints
+	*/
 	ZeroMemory(&hints, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags = AI_PASSIVE;
 
-	//Setup Server
+	/*!
+	Setup Server
+	*/
 	std::cout << "Setting up server..." << std::endl;
 	getaddrinfo(static_cast<LPCTSTR>(IP_ADDRESS), DEFAULT_PORT, &hints, &server);
 
-	//Create a listening socket for connecting to server
+	/*!
+	Create a listening socket for connecting to server
+	*/
 	std::cout << "Creating server socket..." << std::endl;
 	server_socket = socket(server->ai_family, server->ai_socktype, server->ai_protocol);
 
-	//Setup socket options
+	/*!
+	Setup socket options
+	*/
 	setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &OPTION_VALUE, sizeof(int)); //Make it possible to re-bind to a port that was used within the last 2 minutes
 	setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, &OPTION_VALUE, sizeof(int));
 
-	//Assign an address to the server socket.
+	/*!
+	Assign an address to the server socket.
+	*/
 	std::cout << "Binding socket..." << std::endl;
 	bind(server_socket, server->ai_addr, (int)server->ai_addrlen);
 
-	//Listen for incoming connections.
+	/*!
+	Listen for incoming connections.
+	*/
 	std::cout << "Listening..." << std::endl;
 	listen(server_socket, SOMAXCONN);
 
-	//Initialize the client list
+	/*!
+	Initialize the client list
+	*/
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
 		client[i] = { -1, INVALID_SOCKET };
@@ -139,10 +173,14 @@ int main()
 
 		if (incoming == INVALID_SOCKET) continue;
 
-		//Reset the number of clients
+		/*!
+		Reset the number of clients
+		*/
 		num_clients = -1;
 
-		//Create a temporary id for the next client
+		/*!
+		Create a temporary id for the next client
+		*/
 		temp_id = -1;
 		for (int i = 0; i < MAX_CLIENTS; i++)
 		{
@@ -159,12 +197,16 @@ int main()
 
 		if (temp_id != -1)
 		{
-			//Send the id to that client
+			/*!
+			Send the id to that client
+			*/
 			std::cout << "Client #" << client[temp_id].id << " Accepted" << std::endl;
 			msg = std::to_string(client[temp_id].id);
 			send(client[temp_id].socket, msg.c_str(), strlen(msg.c_str()), 0);
 
-			//Create a thread process for that client
+			/*!
+			Create a thread process for that client
+			*/
 			my_thread[temp_id] = std::thread(process_client, std::ref(client[temp_id]), std::ref(client), std::ref(my_thread[temp_id]));
 		}
 		else
@@ -175,17 +217,23 @@ int main()
 		}
 	}
 
-	//Close listening socket
+	/*!
+	Close listening socket
+	*/
 	closesocket(server_socket);
 
-	//Close client socket
+	/*!
+	Close client socket
+	*/
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
 		my_thread[i].detach();
 		closesocket(client[i].socket);
 	}
 
-	//Clean up Winsock
+	/*!
+	Clean up Winsock
+	*/
 	WSACleanup();
 	std::cout << "Program has ended successfully" << std::endl;
 
